@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Northwind static site</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { max-width: 40rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
+  dt { font-weight: 600; margin-top: .75rem; }
+  dd { margin: 0; font-family: ui-monospace, monospace; }
+  .unknown { opacity: .6; }
+</style>
+
+<h1>Northwind static site</h1>
+<p>
+  The <code>platform/static-site</code> archetype. A static bundle has no process to read environment
+  variables, so its identity is written into <code>identity.json</code> at deploy time and fetched here.
+</p>
+
+<dl id="identity"></dl>
+
+<script type="module">
+  const target = document.getElementById('identity');
+  const fields = ['component', 'environment', 'stamp', 'specVersion'];
+
+  try {
+    const response = await fetch('./identity.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(response.statusText);
+    const identity = await response.json();
+
+    target.innerHTML = fields.map(field => {
+      const value = identity[field] ?? 'unknown';
+      const cls = value === 'unknown' ? ' class="unknown"' : '';
+      return `<dt>${field}</dt><dd${cls}>${value}</dd>`;
+    }).join('');
+  } catch (error) {
+    // Said plainly rather than left blank: a site serving no identity is one that was uploaded
+    // without a deploy step, which is exactly the case worth being able to see.
+    target.innerHTML = `<dt>identity</dt><dd class="unknown">not written at deploy time (${error.message})</dd>`;
+  }
+</script>
