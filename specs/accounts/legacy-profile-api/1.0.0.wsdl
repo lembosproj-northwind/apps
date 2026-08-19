@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Legacy Profile API 1.0.0 - DEPRECATED.
+
+  The pre-2015 customer profile service. Superseded by accounts/customers-api, which is the only
+  interface that honours GDPR erasure - this one has no delete operation at all, which is precisely
+  why it is deprecated rather than merely old.
+
+  Kept in the catalog because two internal consumers still call it, and a contract that is not
+  registered cannot be shown to have consumers.
+-->
+<definitions name="LegacyProfile"
+             targetNamespace="https://accounts.northwind.example/legacy-profile"
+             xmlns:tns="https://accounts.northwind.example/legacy-profile"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+  <types>
+    <xsd:schema targetNamespace="https://accounts.northwind.example/legacy-profile">
+      <xsd:element name="GetProfileRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="CustomerNumber" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetProfileResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="CustomerNumber" type="xsd:string"/>
+            <xsd:element name="FullName" type="xsd:string"/>
+            <xsd:element name="EmailAddress" type="xsd:string"/>
+            <xsd:element name="CreatedOn" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+
+  <message name="GetProfileIn">
+    <part name="parameters" element="tns:GetProfileRequest"/>
+  </message>
+
+  <message name="GetProfileOut">
+    <part name="parameters" element="tns:GetProfileResponse"/>
+  </message>
+
+  <portType name="LegacyProfilePortType">
+    <operation name="GetProfile">
+      <input message="tns:GetProfileIn"/>
+      <output message="tns:GetProfileOut"/>
+    </operation>
+  </portType>
+
+  <binding name="LegacyProfileBinding" type="tns:LegacyProfilePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="GetProfile">
+      <soap:operation soapAction="https://accounts.northwind.example/legacy-profile/GetProfile"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+  </binding>
+
+  <service name="LegacyProfile">
+    <port name="LegacyProfilePort" binding="tns:LegacyProfileBinding">
+      <soap:address location="https://accounts.northwind.example/legacy-profile"/>
+    </port>
+  </service>
+</definitions>

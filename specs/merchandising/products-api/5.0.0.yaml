@@ -1,0 +1,56 @@
+openapi: 3.1.0
+info:
+  title: Products API
+  version: 5.0.0
+  description: Read and write product records.
+servers:
+  - url: https://merchandising.northwind.example/v5
+paths:
+  /products:
+    get:
+      operationId: listProducts
+      parameters:
+        - { name: category, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 50, maximum: 200 } }
+      responses:
+        '200':
+          description: A page of products.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Product' } }
+  /products/{sku}:
+    parameters:
+      - { name: sku, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getProduct
+      responses:
+        '200':
+          description: One product.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { description: No such product. }
+    put:
+      operationId: upsertProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Product' }
+      responses:
+        '200': { description: Updated. }
+        '201': { description: Created. }
+components:
+  schemas:
+    Product:
+      type: object
+      required: [sku, name, category, status]
+      properties:
+        sku: { type: string }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        status: { type: string, enum: [draft, active, discontinued] }
+        attributes:
+          type: object
+          additionalProperties: { type: string }

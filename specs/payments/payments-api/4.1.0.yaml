@@ -1,0 +1,79 @@
+openapi: 3.1.0
+info:
+  title: Payments API
+  version: 4.1.0
+  description: Authorize, capture, and refund. Every call is inside PCI scope.
+servers:
+  - url: https://payments.northwind.example/v4
+security:
+  - mtls: []
+paths:
+  /authorizations:
+    post:
+      operationId: authorize
+      summary: Authorize a payment
+      description: >-
+        Takes a provider token, never a card number. A request carrying a PAN is rejected at the edge
+        rather than forwarded, which is what keeps consumers of this API out of PCI scope.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, amount, currency, token]
+              properties:
+                orderId: { type: string, format: uuid }
+                amount: { type: string }
+                currency: { type: string, minLength: 3, maxLength: 3 }
+                token: { type: string, description: Provider-issued token. Never a card number. }
+      responses:
+        '201':
+          description: The authorization.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Authorization' }
+        '402': { description: Declined by the issuer. Not an error on our side. }
+  /authorizations/{authorizationId}/capture:
+    parameters:
+      - { name: authorizationId, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: capture
+      responses:
+        '200':
+          description: Captured.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Authorization' }
+  /refunds:
+    post:
+      operationId: refund
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [authorizationId, amount]
+              properties:
+                authorizationId: { type: string }
+                amount: { type: string }
+      responses:
+        '201': { description: Refund accepted. }
+components:
+  securitySchemes:
+    mtls:
+      type: mutualTLS
+  schemas:
+    Authorization:
+      type: object
+      required: [id, orderId, status, amount, currency]
+      properties:
+        id: { type: string }
+        orderId: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [authorized, captured, voided, refunded, declined]
+        amount: { type: string }
+        currency: { type: string }
+        last4: { type: string, description: The only card data this API ever returns. }

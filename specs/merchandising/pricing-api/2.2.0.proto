@@ -1,0 +1,63 @@
+// Pricing API 2.2.0
+//
+// Resolve a price for a product in a context. Called on every basket render, so it is gRPC rather
+// than JSON over HTTP - the serialisation cost showed up in the funnel's p99.
+
+syntax = "proto3";
+
+package northwind.merchandising.pricing.v2;
+
+option csharp_namespace = "Northwind.Merchandising.Pricing.V2";
+
+service Pricing {
+  // One product, one context.
+  rpc ResolvePrice(ResolvePriceRequest) returns (ResolvePriceResponse);
+
+  // The basket case. Batched because a basket render resolves every line at once, and N unary calls
+  // is the shape this version exists to remove.
+  rpc ResolvePrices(ResolvePricesRequest) returns (ResolvePricesResponse);
+}
+
+message PriceContext {
+  string customer_id = 1;
+  // ISO 3166-1 alpha-2. Prices differ per country, which is why this is required rather than
+  // inferred from the caller.
+  string country = 2;
+  string currency = 3;
+  repeated string segment_ids = 4;
+}
+
+message ResolvePriceRequest {
+  string sku = 1;
+  PriceContext context = 2;
+}
+
+message ResolvePricesRequest {
+  repeated string skus = 1;
+  PriceContext context = 2;
+}
+
+message Money {
+  // Decimal as a string, so no client rounds it.
+  string amount = 1;
+  string currency = 2;
+}
+
+message ResolvedPrice {
+  string sku = 1;
+  Money list_price = 2;
+  Money effective_price = 3;
+  // Which promotion produced the difference, when there is one. Empty means list price applied.
+  string promotion_id = 4;
+}
+
+message ResolvePriceResponse {
+  ResolvedPrice price = 1;
+}
+
+message ResolvePricesResponse {
+  repeated ResolvedPrice prices = 1;
+  // SKUs that could not be priced. Returned rather than omitted, so a caller can tell "no price"
+  // from "dropped on the floor".
+  repeated string unpriced_skus = 2;
+}

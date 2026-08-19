@@ -1,0 +1,52 @@
+openapi: 3.1.0
+info:
+  title: Tickets API
+  version: 0.4.0
+  description: Support tickets raised by customers and agents. Beta.
+servers:
+  - url: https://support.northwind.example/v0
+paths:
+  /tickets:
+    get:
+      operationId: listTickets
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [open, pending, resolved, closed] } }
+        - { name: customerId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: A page of tickets.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Ticket' } }
+    post:
+      operationId: raiseTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customerId, subject]
+              properties:
+                customerId: { type: string, format: uuid }
+                subject: { type: string }
+                body: { type: string }
+                orderId: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Raised.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+components:
+  schemas:
+    Ticket:
+      type: object
+      required: [id, customerId, subject, status, raisedAt]
+      properties:
+        id: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        subject: { type: string }
+        status: { type: string, enum: [open, pending, resolved, closed] }
+        assigneeId: { type: string }
+        raisedAt: { type: string, format: date-time }

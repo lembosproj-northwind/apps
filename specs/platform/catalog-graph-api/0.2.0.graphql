@@ -1,0 +1,74 @@
+# Catalog Graph API 0.2.0
+#
+# Experimental. An internal read-only view over the software catalog's dependency graph, for tooling
+# that needs to traverse it without paging through several list endpoints.
+
+schema {
+  query: Query
+}
+
+type Query {
+  "One node by qualified name, e.g. \"ordering/order-api\"."
+  node(qualifiedName: String!): CatalogNode
+
+  "Everything reachable from a node, to a bounded depth. Depth is capped server-side at 5."
+  neighbourhood(qualifiedName: String!, depth: Int = 2): Neighbourhood!
+}
+
+interface CatalogNode {
+  qualifiedName: String!
+  kind: NodeKind!
+  owner: String
+}
+
+enum NodeKind {
+  COMPONENT
+  API
+  RESOURCE
+  SOFTWARE_SYSTEM
+}
+
+type ComponentNode implements CatalogNode {
+  qualifiedName: String!
+  kind: NodeKind!
+  owner: String
+  provides: [String!]!
+  consumes: [String!]!
+  dependsOn: [String!]!
+}
+
+type ApiNode implements CatalogNode {
+  qualifiedName: String!
+  kind: NodeKind!
+  owner: String
+  apiType: String!
+  currentVersion: String
+}
+
+type ResourceNode implements CatalogNode {
+  qualifiedName: String!
+  kind: NodeKind!
+  owner: String
+  blueprint: String!
+}
+
+type Neighbourhood {
+  root: CatalogNode!
+  nodes: [CatalogNode!]!
+  edges: [CatalogEdge!]!
+  "True when the traversal stopped at the depth cap rather than at the graph's edge."
+  truncated: Boolean!
+}
+
+type CatalogEdge {
+  from: String!
+  to: String!
+  relation: Relation!
+}
+
+enum Relation {
+  PROVIDES
+  CONSUMES
+  DEPENDS_ON
+  CONTAINS
+}

@@ -1,0 +1,71 @@
+# Product Search API 0.9.0
+#
+# Faceted product search. Still beta: the schema is expected to move before it settles, and fields
+# here may be removed rather than deprecated while the version stays below 1.0.0.
+
+schema {
+  query: Query
+}
+
+type Query {
+  "Search products, with facets computed over the whole match set rather than the returned page."
+  searchProducts(
+    query: String!
+    filters: [FacetFilter!]
+    first: Int = 20
+    after: String
+  ): ProductSearchResult!
+
+  "Suggestions for a partial term, for the type-ahead in the search bar."
+  suggest(prefix: String!, limit: Int = 10): [String!]!
+}
+
+type ProductSearchResult {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+  "Counts over the entire match set. A facet with a zero count is omitted rather than returned as 0."
+  facets: [Facet!]!
+  totalCount: Int!
+}
+
+type ProductEdge {
+  node: Product!
+  cursor: String!
+  "Relevance, for debugging a ranking complaint. Not stable across index rebuilds."
+  score: Float
+}
+
+type Product {
+  sku: ID!
+  name: String!
+  description: String
+  category: String!
+  price: Money!
+  inStock: Boolean!
+}
+
+type Money {
+  "Decimal as a string, so no client rounds it."
+  amount: String!
+  currency: String!
+}
+
+type Facet {
+  field: String!
+  values: [FacetValue!]!
+}
+
+type FacetValue {
+  value: String!
+  count: Int!
+}
+
+input FacetFilter {
+  field: String!
+  values: [String!]!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}

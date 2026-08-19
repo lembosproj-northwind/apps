@@ -1,0 +1,76 @@
+// Inventory API 3.0.0
+//
+// Stock levels and reservations.
+
+syntax = "proto3";
+
+package northwind.warehouse.inventory.v3;
+
+option csharp_namespace = "Northwind.Warehouse.Inventory.V3";
+
+import "google/protobuf/timestamp.proto";
+
+service Inventory {
+  rpc GetStock(GetStockRequest) returns (GetStockResponse);
+
+  // Reservations are idempotent on reservation_id: a retried call returns the existing reservation
+  // rather than taking the stock twice.
+  rpc Reserve(ReserveRequest) returns (ReserveResponse);
+  rpc Release(ReleaseRequest) returns (ReleaseResponse);
+
+  // Server stream, so a warehouse screen follows changes without polling.
+  rpc WatchStock(WatchStockRequest) returns (stream StockLevel);
+}
+
+message StockLevel {
+  string sku = 1;
+  string warehouse_id = 2;
+  int32 on_hand = 3;
+  int32 reserved = 4;
+  // on_hand - reserved. Carried rather than computed, because a client computing it from a stale
+  // pair produces a number that was never true.
+  int32 available = 5;
+  google.protobuf.Timestamp as_of = 6;
+}
+
+message GetStockRequest {
+  repeated string skus = 1;
+  string warehouse_id = 2;
+}
+
+message GetStockResponse {
+  repeated StockLevel levels = 1;
+}
+
+message ReserveRequest {
+  string reservation_id = 1;
+  string order_id = 2;
+  repeated ReserveLine lines = 3;
+}
+
+message ReserveLine {
+  string sku = 1;
+  int32 quantity = 2;
+}
+
+message ReserveResponse {
+  string reservation_id = 1;
+  ReservationStatus status = 2;
+  // Populated when status is PARTIAL or REJECTED.
+  repeated string unavailable_skus = 3;
+}
+
+enum ReservationStatus {
+  RESERVATION_STATUS_UNSPECIFIED = 0;
+  RESERVATION_STATUS_CONFIRMED = 1;
+  RESERVATION_STATUS_PARTIAL = 2;
+  RESERVATION_STATUS_REJECTED = 3;
+}
+
+message ReleaseRequest {
+  string reservation_id = 1;
+}
+
+message ReleaseResponse {
+  bool released = 1;
+}

@@ -1,0 +1,61 @@
+openapi: 3.1.0
+info:
+  title: Customers API
+  version: 2.5.0
+  description: Customer profiles and consent. Subject to GDPR erasure.
+servers:
+  - url: https://accounts.northwind.example/v2
+paths:
+  /customers/{customerId}:
+    parameters:
+      - { name: customerId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getCustomer
+      responses:
+        '200':
+          description: The profile.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '404': { description: No such customer. }
+        '410':
+          description: >-
+            The customer was erased. Distinct from 404 on purpose - a consumer holding a reference
+            needs to know the record was deleted rather than that it never existed.
+    delete:
+      operationId: eraseCustomer
+      summary: Erase a customer (GDPR)
+      description: >-
+        Irreversible. The identifier is retained as a tombstone so references resolve to 410 rather
+        than to a fresh customer if the id is ever reissued.
+      responses:
+        '204': { description: Erased. }
+  /customers/{customerId}/consent:
+    parameters:
+      - { name: customerId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: setConsent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Consent' }
+      responses:
+        '204': { description: Recorded. }
+components:
+  schemas:
+    Customer:
+      type: object
+      required: [id, email, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        createdAt: { type: string, format: date-time }
+    Consent:
+      type: object
+      required: [marketing, profiling, recordedAt]
+      properties:
+        marketing: { type: boolean }
+        profiling: { type: boolean }
+        recordedAt: { type: string, format: date-time }

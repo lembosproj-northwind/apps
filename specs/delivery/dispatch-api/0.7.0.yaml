@@ -1,0 +1,57 @@
+openapi: 3.1.0
+info:
+  title: Dispatch API
+  version: 0.7.0
+  description: >-
+    Assign a parcel to a courier and track it. Beta while the routing model settles - paths and
+    payloads here are expected to change without a major version.
+servers:
+  - url: https://delivery.northwind.example/v0
+paths:
+  /dispatches:
+    post:
+      operationId: createDispatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, address]
+              properties:
+                orderId: { type: string, format: uuid }
+                address: { $ref: '#/components/schemas/Address' }
+                preferredWindow: { type: string, description: ISO 8601 interval. }
+      responses:
+        '202': { description: Accepted for routing. A courier is assigned asynchronously. }
+  /dispatches/{dispatchId}:
+    parameters:
+      - { name: dispatchId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getDispatch
+      responses:
+        '200':
+          description: Current state of the dispatch.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dispatch' }
+components:
+  schemas:
+    Address:
+      type: object
+      required: [line1, postcode, country]
+      properties:
+        line1: { type: string }
+        line2: { type: string }
+        city: { type: string }
+        postcode: { type: string }
+        country: { type: string, minLength: 2, maxLength: 2 }
+    Dispatch:
+      type: object
+      required: [id, orderId, status]
+      properties:
+        id: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
+        status: { type: string, enum: [routing, assigned, collected, delivered, failed] }
+        courierId: { type: string }
+        trackingUrl: { type: string, format: uri }
